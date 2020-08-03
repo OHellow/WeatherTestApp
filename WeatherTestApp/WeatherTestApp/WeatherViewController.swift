@@ -144,7 +144,7 @@ class MainViewController: UIViewController, CLLocationManagerDelegate {
     
     func setupTopViewInfo() {
         guard let currentWeatherResult = DataStorage.weatherCurrentData else {return}
-            cityLabel.text = currentWeatherResult.name
+            //cityLabel.text = currentWeatherResult.name
             weatherDescLabel.text = currentWeatherResult.weather[0].description
             tempLabel.text = "\(Int(currentWeatherResult.main.temp) - 273)\u{00B0}"
             dayTodayLabel.text = "\(Utilities.getDayName(timeInterval: currentWeatherResult.dt)) Today"
@@ -153,6 +153,7 @@ class MainViewController: UIViewController, CLLocationManagerDelegate {
     }
     //MARK: Location Setup and Manager
     func setupLocation() {
+        self.cityLabel.text = UserDefaults.standard.value(forKey: "city") as? String ?? "--"
         locationManager.delegate = self
         locationManager.requestWhenInUseAuthorization()
         locationManager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
@@ -172,6 +173,21 @@ class MainViewController: UIViewController, CLLocationManagerDelegate {
             NetworkManager.shared.setLongitude(lon)
             print("lat: \(lat)")
             print("lon: \(lon)")
+            let geocoder = CLGeocoder()
+            geocoder.reverseGeocodeLocation(currentLocation) { (placemarks, error) in
+                if let error = error {
+                    debugPrint(error.localizedDescription)
+                }
+                if let placemarks = placemarks {
+                    if placemarks.count > 0 {
+                        let placemark = placemarks[0]
+                        if let city = placemark.locality {
+                            UserDefaults.standard.set(city, forKey: "city")
+                            self.cityLabel.text = city
+                        }
+                    }
+                }
+            }
             getAllWeather()
             getCurrentWeather()
         }
