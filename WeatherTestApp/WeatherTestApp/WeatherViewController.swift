@@ -11,7 +11,7 @@ import MapKit
 import CoreLocation
 
 class MainViewController: UIViewController, CLLocationManagerDelegate {
-    
+    //MARK: Views
     let topView = UIView()
     let tableView = UITableView()
     
@@ -52,10 +52,12 @@ class MainViewController: UIViewController, CLLocationManagerDelegate {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = "--"
-        label.font = UIFont.systemFont(ofSize: 17, weight: .medium)
+        label.font = UIFont.systemFont(ofSize: 20)
+        label.textColor = UIColor.systemGray
+        label.textAlignment = .right
         label.adjustsFontSizeToFitWidth = true
-        label.heightAnchor.constraint(equalToConstant: 21).isActive = true
-        label.widthAnchor.constraint(equalToConstant: 36).isActive = true
+        label.heightAnchor.constraint(equalToConstant: 24).isActive = true
+        label.widthAnchor.constraint(equalToConstant: 40).isActive = true
         return label
     }()
     
@@ -63,9 +65,10 @@ class MainViewController: UIViewController, CLLocationManagerDelegate {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = "--"
-        label.font = UIFont.systemFont(ofSize: 17, weight: .medium)
+        label.font = UIFont.systemFont(ofSize: 20)
+        label.textAlignment = .left
         label.adjustsFontSizeToFitWidth = true
-        label.heightAnchor.constraint(equalToConstant: 21).isActive = true
+        label.heightAnchor.constraint(equalToConstant: 24).isActive = true
         label.widthAnchor.constraint(equalToConstant: 36).isActive = true
         return label
     }()
@@ -80,23 +83,25 @@ class MainViewController: UIViewController, CLLocationManagerDelegate {
         label.widthAnchor.constraint(equalToConstant: 270).isActive = true
         return label
     }()
-    
-    var weatherResult: Result?
-    var currentWeatherResult: CurrentWeatherData?
+    //MARK: Vars
+//    var weatherResult: Result?
+//    var currentWeatherResult: CurrentWeatherData?
     var locationManager = CLLocationManager()
     var currentLocation: CLLocation?
+    //var presenter: DataPresenter!
     
-    fileprivate var forecast24Cell: Forecast24TableViewCell!
-    fileprivate var dailyForecastCell: DailyTableViewCell!
-    fileprivate var weatherDetailCell: WeatherDetailTableViewCell!
-    fileprivate var weatherMessageCell: WeatherMessageTableViewCell!
-
+    var forecast24Cell: Forecast24TableViewCell!
+    var dailyForecastCell: DailyTableViewCell!
+    var weatherDetailCell: WeatherDetailTableViewCell!
+    var weatherMessageCell: WeatherMessageTableViewCell!
+    //MARK:ViewDidLoad
     override func viewDidLoad() {
         super.viewDidLoad()
         tableView.dataSource = self
         tableView.delegate = self
         tableView.estimatedRowHeight = 44
         tableView.rowHeight = UITableView.automaticDimension
+        tableView.showsVerticalScrollIndicator = false
         tableView.register(Forecast24TableViewCell.nib(), forCellReuseIdentifier: Forecast24TableViewCell.identifier)
         tableView.register(DailyTableViewCell.nib(), forCellReuseIdentifier: DailyTableViewCell.identifier)
         tableView.register(WeatherMessageTableViewCell.nib(), forCellReuseIdentifier: WeatherMessageTableViewCell.identifier)
@@ -104,29 +109,33 @@ class MainViewController: UIViewController, CLLocationManagerDelegate {
         setupLayout()
         setupLocation()
     }
-    
+    //MARK: GetWeather Functions
     func getAllWeather() {
         NetworkManager.shared.getAllWeather(onSuccess: { (result) in
-            self.weatherResult = result
+            //self.weatherResult = result
             DataStorage.weatherAllData = result
             //print(result)
             //print(DataStorage.weatherAllData)
-            self.weatherResult?.sortDailyArray()
-            self.weatherResult?.sortHourlyArray()
+            DataStorage.weatherAllData?.sortDailyArray()
+            DataStorage.weatherAllData?.sortHourlyArray()
+//            self.weatherResult?.sortDailyArray()
+//            self.weatherResult?.sortHourlyArray()
             self.tableView.reloadData()
         }) { (errorMessage) in
             debugPrint(errorMessage)
         }
     }
     
-    func getWeather() {
+    func getCurrentWeather() {
         NetworkManager.shared.getCurrentWeather(onSuccess: { (result) in
-            self.currentWeatherResult = result
+            //self.currentWeatherResult = result
             DataStorage.weatherCurrentData = result
             //print(DataStorage.weatherCurrentData)
-            self.setupTopViewInfo()
+            DispatchQueue.main.async {
+                self.setupTopViewInfo()
+            }
             //self.tableView.reloadData()
-            print(result)
+            //print(result)
         }) { (error) in
             debugPrint(error)
             self.setupTopViewInfo()
@@ -142,7 +151,7 @@ class MainViewController: UIViewController, CLLocationManagerDelegate {
             minTempLabel.text = "\(Int(currentWeatherResult.main.temp_min) - 273)"
             maxTempLabel.text = "\(Int(currentWeatherResult.main.temp_max) - 273)"
     }
-    //MARK: LocationManager
+    //MARK: Location Setup and Manager
     func setupLocation() {
         locationManager.delegate = self
         locationManager.requestWhenInUseAuthorization()
@@ -161,10 +170,10 @@ class MainViewController: UIViewController, CLLocationManagerDelegate {
             let lon = currentLocation.coordinate.longitude
             NetworkManager.shared.setLatitude(lat)
             NetworkManager.shared.setLongitude(lon)
-            print(lat)
-            print(lon)
+            print("lat: \(lat)")
+            print("lon: \(lon)")
             getAllWeather()
-            getWeather()
+            getCurrentWeather()
         }
     }
     
@@ -183,18 +192,14 @@ extension MainViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         var cell: UITableViewCell!
         
-        let weatherResultUD = DataStorage.weatherAllData
-        let weatherCurrentUD = DataStorage.weatherCurrentData
-//        print(weatherResultUD)
-//        print(weatherCurrentUD)
-        if weatherResult == nil && weatherResultUD != nil {
-            weatherResult = weatherResultUD
-            print("yes1")
-        }
-        if currentWeatherResult == nil && weatherCurrentUD != nil {
-            currentWeatherResult = weatherCurrentUD
-            print("yes2")
-        }
+        let weatherResult = DataStorage.weatherAllData
+        let currentWeatherResult = DataStorage.weatherCurrentData
+//        if weatherResult == nil && weatherResultUD != nil {
+//            weatherResult = weatherResultUD
+//        }
+//        if currentWeatherResult == nil && weatherCurrentUD != nil {
+//            currentWeatherResult = weatherCurrentUD
+//        }
         if indexPath.row == 0 {
             dailyForecastCell = tableView.dequeueReusableCell(withIdentifier: DailyTableViewCell.identifier, for: indexPath) as? DailyTableViewCell
             if weatherResult != nil {
@@ -217,10 +222,10 @@ extension MainViewController: UITableViewDataSource, UITableViewDelegate {
                     setDataWeatherDetailCell(weatherDetailCell: weatherDetailCell, leftTitle: "CHANCE OF RAIN", leftValue: "22%", rightTitle: "HUMIDITY", rightValue: "\(weatherResult?.current.humidity ?? 0)%")
                 }
                 else if indexPath.row == 4 {
-                    setDataWeatherDetailCell(weatherDetailCell: weatherDetailCell, leftTitle: "WIND", leftValue: "\(Utilities.getWindDirection(fromDegrees: Float(weatherResult?.current.wind_deg ?? 0)))\(weatherResult?.current.wind_speed ?? 0) km/hr", rightTitle: "FEELS LIKE", rightValue: "\(Int(weatherResult!.current.feels_like) - 273)\u{00B0}")
+                    setDataWeatherDetailCell(weatherDetailCell: weatherDetailCell, leftTitle: "WIND", leftValue: "\(Utilities.getWindDirection(fromDegrees: Float(weatherResult?.current.wind_deg ?? 0))) \(weatherResult?.current.wind_speed ?? 0) km/hr", rightTitle: "FEELS LIKE", rightValue: "\(Int(weatherResult!.current.feels_like) - 273)\u{00B0}")
                 }
                 else if indexPath.row == 5 {
-                    setDataWeatherDetailCell(weatherDetailCell: weatherDetailCell, leftTitle: "PRECIPITATION", leftValue: " 3 mm", rightTitle: "PRESSURE", rightValue: "\(weatherResult?.current.pressure ?? 0) hPA")
+                    setDataWeatherDetailCell(weatherDetailCell: weatherDetailCell, leftTitle: "PRECIPITATION", leftValue: "3 mm", rightTitle: "PRESSURE", rightValue: "\(weatherResult?.current.pressure ?? 0) hPA")
                 }
                 else if indexPath.row == 6 {
                     setDataWeatherDetailCell(weatherDetailCell: weatherDetailCell, leftTitle: "VISIBILITY", leftValue: "\(Double(weatherResult?.current.visibility ?? 0) / 1000) km", rightTitle: "UV INDEX", rightValue: "\(weatherResult?.current.uvi ?? 0)")
@@ -232,11 +237,12 @@ extension MainViewController: UITableViewDataSource, UITableViewDelegate {
     }
     
     func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
-        120
+        122
     }
     
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         let cell: UITableViewCell!
+        let weatherResult = DataStorage.weatherAllData
         forecast24Cell = tableView.dequeueReusableCell(withIdentifier: Forecast24TableViewCell.identifier) as? Forecast24TableViewCell
         if weatherResult != nil {
             setDataForecast24Cell(forecast24Cell: forecast24Cell, weatherModel: weatherResult!)
@@ -249,10 +255,10 @@ extension MainViewController: UITableViewDataSource, UITableViewDelegate {
         tableView.deselectRow(at: indexPath, animated: true)
     }
 }
-
+//MARK:Data Present Functions
 extension MainViewController {
-    internal func setDataDailyForecast(dailyForecastCell: DailyTableViewCell,dailyForecastModel: Result) {
-
+     func setDataDailyForecast(dailyForecastCell: DailyTableViewCell,dailyForecastModel: Result) {
+        
         dailyForecastCell.day1.text = Utilities.getDayName(timeInterval: dailyForecastModel.daily[0].dt)
         dailyForecastCell.day2.text = Utilities.getDayName(timeInterval: dailyForecastModel.daily[1].dt)
         dailyForecastCell.day3.text = Utilities.getDayName(timeInterval: dailyForecastModel.daily[2].dt)
@@ -286,22 +292,21 @@ extension MainViewController {
         dailyForecastCell.tempMin7.text = "\(Int(dailyForecastModel.daily[6].temp.min) - 273)"
     }
     
-    internal func setDataWeatherMessageCell(weatherMessageCell: WeatherMessageTableViewCell,weatherModel: CurrentWeatherData) {
+     func setDataWeatherMessageCell(weatherMessageCell: WeatherMessageTableViewCell,weatherModel: CurrentWeatherData) {
         weatherMessageCell.messageLabel.text = "Today : \(weatherModel.weather[0].description) currently. It's \(Int(weatherModel.main.temp) - 273)\u{00B0}, the high today was forecast as \(Int(weatherModel.main.temp_max) - 273)\u{00B0}"
     }
     
-    internal func setDataWeatherDetailCell(weatherDetailCell: WeatherDetailTableViewCell, leftTitle: String, leftValue: String, rightTitle: String, rightValue: String) {
+     func setDataWeatherDetailCell(weatherDetailCell: WeatherDetailTableViewCell, leftTitle: String, leftValue: String, rightTitle: String, rightValue: String) {
         weatherDetailCell.leftTitle.text = leftTitle
         weatherDetailCell.leftValue.text = leftValue
         weatherDetailCell.rightTitle.text = rightTitle
         weatherDetailCell.rightValue.text = rightValue
     }
     
-    internal func setDataForecast24Cell(forecast24Cell: Forecast24TableViewCell, weatherModel: Result) {
+     func setDataForecast24Cell(forecast24Cell: Forecast24TableViewCell, weatherModel: Result) {
         forecast24Cell.forecastData = weatherModel.hourly
     }
 }
-
 //MARK:SetupLayout
 extension MainViewController {
     func setupLayout() {
@@ -328,7 +333,7 @@ extension MainViewController {
         tempLabel.rightAnchor.constraint(equalTo: topView.rightAnchor, constant: -8).isActive = true
         
         topView.addSubview(minTempLabel)
-        minTempLabel.rightAnchor.constraint(equalTo: topView.rightAnchor, constant: -8).isActive = true
+        minTempLabel.rightAnchor.constraint(equalTo: topView.rightAnchor, constant: -16).isActive = true
         minTempLabel.bottomAnchor.constraint(equalTo: topView.bottomAnchor, constant: -8).isActive = true
         
         topView.addSubview(maxTempLabel)
@@ -336,7 +341,7 @@ extension MainViewController {
         maxTempLabel.bottomAnchor.constraint(equalTo: topView.bottomAnchor, constant: -8).isActive = true
         
         topView.addSubview(dayTodayLabel)
-        dayTodayLabel.leftAnchor.constraint(equalTo: topView.leftAnchor, constant: 8).isActive = true
+        dayTodayLabel.leftAnchor.constraint(equalTo: topView.leftAnchor, constant: 16).isActive = true
         dayTodayLabel.bottomAnchor.constraint(equalTo: topView.bottomAnchor, constant: -8).isActive = true
         view.addSubview(tableView)
         tableView.translatesAutoresizingMaskIntoConstraints = false
