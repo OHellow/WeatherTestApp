@@ -12,10 +12,10 @@ import CoreLocation
 
 class MainViewController: UIViewController, CLLocationManagerDelegate {
     //MARK: Views
-    let topView = UIView()
-    let tableView = UITableView()
+    private let topView = UIView()
+    private let tableView = UITableView()
     
-    let cityLabel: UILabel = {
+    private let cityLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = "--"
@@ -26,7 +26,7 @@ class MainViewController: UIViewController, CLLocationManagerDelegate {
         return label
     }()
     
-    let weatherDescLabel: UILabel = {
+    private let weatherDescLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = "--"
@@ -37,7 +37,7 @@ class MainViewController: UIViewController, CLLocationManagerDelegate {
         return label
     }()
     
-    let tempLabel: UILabel = {
+    private let tempLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = "--"
@@ -48,7 +48,7 @@ class MainViewController: UIViewController, CLLocationManagerDelegate {
         return label
     }()
     
-    let minTempLabel: UILabel = {
+    private let minTempLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = "--"
@@ -61,7 +61,7 @@ class MainViewController: UIViewController, CLLocationManagerDelegate {
         return label
     }()
     
-    let maxTempLabel: UILabel = {
+    private let maxTempLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = "--"
@@ -73,7 +73,7 @@ class MainViewController: UIViewController, CLLocationManagerDelegate {
         return label
     }()
     
-    let dayTodayLabel: UILabel = {
+    private let dayTodayLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = "--- Today"
@@ -84,17 +84,18 @@ class MainViewController: UIViewController, CLLocationManagerDelegate {
         return label
     }()
     //MARK: Vars
-//    var weatherResult: Result?
-//    var currentWeatherResult: CurrentWeatherData?
-    var locationManager = CLLocationManager()
-    var currentLocation: CLLocation?
-    //var presenter: DataPresenter!
+    private var locationManager = CLLocationManager()
+    private var currentLocation: CLLocation?
     
-    var forecast24Cell: Forecast24TableViewCell!
-    var dailyForecastCell: DailyTableViewCell!
-    var weatherDetailCell: WeatherDetailTableViewCell!
-    var weatherMessageCell: WeatherMessageTableViewCell!
-    //MARK:ViewDidLoad
+    private let maxHeaderHeight: CGFloat = 250
+    private let minHeaderHeight: CGFloat = 110
+    private var previousScrollOffset: CGFloat = 0
+    
+    private var forecast24Cell: Forecast24TableViewCell!
+    private var dailyForecastCell: DailyTableViewCell!
+    private var weatherDetailCell: WeatherDetailTableViewCell!
+    private var weatherMessageCell: WeatherMessageTableViewCell!
+    //MARK:View Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         tableView.dataSource = self
@@ -110,41 +111,31 @@ class MainViewController: UIViewController, CLLocationManagerDelegate {
         setupLocation()
     }
     //MARK: GetWeather Functions
-    func getAllWeather() {
+    private func getAllWeather() {
         NetworkManager.shared.getAllWeather(onSuccess: { (result) in
-            //self.weatherResult = result
             DataStorage.weatherAllData = result
-            //print(result)
-            //print(DataStorage.weatherAllData)
             DataStorage.weatherAllData?.sortDailyArray()
             DataStorage.weatherAllData?.sortHourlyArray()
-//            self.weatherResult?.sortDailyArray()
-//            self.weatherResult?.sortHourlyArray()
             self.tableView.reloadData()
         }) { (errorMessage) in
             debugPrint(errorMessage)
         }
     }
     
-    func getCurrentWeather() {
+    private func getCurrentWeather() {
         NetworkManager.shared.getCurrentWeather(onSuccess: { (result) in
-            //self.currentWeatherResult = result
             DataStorage.weatherCurrentData = result
-            //print(DataStorage.weatherCurrentData)
             DispatchQueue.main.async {
                 self.setupTopViewInfo()
             }
-            //self.tableView.reloadData()
-            //print(result)
+            self.tableView.reloadData()
         }) { (error) in
             debugPrint(error)
-            self.setupTopViewInfo()
         }
     }
     
-    func setupTopViewInfo() {
+    private func setupTopViewInfo() {
         guard let currentWeatherResult = DataStorage.weatherCurrentData else {return}
-            //cityLabel.text = currentWeatherResult.name
             weatherDescLabel.text = currentWeatherResult.weather[0].description
             tempLabel.text = "\(Int(currentWeatherResult.main.temp) - 273)\u{00B0}"
             dayTodayLabel.text = "\(Utilities.getDayName(timeInterval: currentWeatherResult.dt)) Today"
@@ -154,6 +145,7 @@ class MainViewController: UIViewController, CLLocationManagerDelegate {
     //MARK: Location Setup and Manager
     func setupLocation() {
         self.cityLabel.text = UserDefaults.standard.value(forKey: "city") as? String ?? "--"
+        setupTopViewInfo()
         locationManager.delegate = self
         locationManager.requestWhenInUseAuthorization()
         locationManager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
@@ -210,12 +202,7 @@ extension MainViewController: UITableViewDataSource, UITableViewDelegate {
         
         let weatherResult = DataStorage.weatherAllData
         let currentWeatherResult = DataStorage.weatherCurrentData
-//        if weatherResult == nil && weatherResultUD != nil {
-//            weatherResult = weatherResultUD
-//        }
-//        if currentWeatherResult == nil && weatherCurrentUD != nil {
-//            currentWeatherResult = weatherCurrentUD
-//        }
+
         if indexPath.row == 0 {
             dailyForecastCell = tableView.dequeueReusableCell(withIdentifier: DailyTableViewCell.identifier, for: indexPath) as? DailyTableViewCell
             if weatherResult != nil {
@@ -258,11 +245,11 @@ extension MainViewController: UITableViewDataSource, UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         let cell: UITableViewCell!
-        let weatherResult = DataStorage.weatherAllData
+        guard let weatherResult = DataStorage.weatherAllData else {return forecast24Cell}
         forecast24Cell = tableView.dequeueReusableCell(withIdentifier: Forecast24TableViewCell.identifier) as? Forecast24TableViewCell
-        if weatherResult != nil {
-            setDataForecast24Cell(forecast24Cell: forecast24Cell, weatherModel: weatherResult!)
-        }
+        //if weatherResult != nil {
+            setDataForecast24Cell(forecast24Cell: forecast24Cell, weatherModel: weatherResult)
+        //}
         cell = forecast24Cell
         return cell
     }
@@ -366,6 +353,56 @@ extension MainViewController {
         tableView.leftAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leftAnchor).isActive = true
         tableView.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor).isActive = true
         tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor).isActive = true
+    }
+    //MARK: ScrollView Animation
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        let scrollDiff = (scrollView.contentOffset.y - previousScrollOffset)
+        let isScrollingDown = scrollDiff > 0
+        let isScrollingUp = scrollDiff < 0
+        if canAnimateHeader(scrollView) {
+            var newHeight = topView.heightConstraint?.constant
+            
+            if isScrollingDown {
+                newHeight = max(minHeaderHeight, (topView.heightConstraint?.constant ?? 0) - abs(scrollDiff))
+                //print("scrollDown")
+            } else if isScrollingUp {
+                newHeight = min(maxHeaderHeight, (topView.heightConstraint?.constant ?? 0) + abs(scrollDiff))
+                //print("scrollUP")
+            }
+            if newHeight != topView.frame.height {
+                topView.heightConstraint?.constant = newHeight ?? 0
+                setScrollPosition()
+                previousScrollOffset = scrollView.contentOffset.y
+            }
+            
+            let alphaValue = getAlpha(h: newHeight ?? 250)
+            //print(alphaValue)
+            tempLabel.alpha = alphaValue
+            minTempLabel.alpha = alphaValue
+            maxTempLabel.alpha = alphaValue
+            dayTodayLabel.alpha = alphaValue
+        }
+    }
+    
+    func canAnimateHeader (_ scrollView: UIScrollView) -> Bool {
+        let scrollViewMaxHeight = scrollView.frame.height + topView.frame.height - minHeaderHeight
+        return scrollView.contentSize.height > scrollViewMaxHeight
+    }
+    
+    func setScrollPosition() {
+        self.tableView.contentOffset = CGPoint(x:0, y: 0)
+    }
+    
+    func getAlpha(h: CGFloat) -> CGFloat {
+        let s: CGFloat
+        if h == 250 {
+            return 1
+        } else if h == 110 {
+            return 0
+        } else {
+            s = (h - 110)/140
+        return s
+        }
     }
 }
 

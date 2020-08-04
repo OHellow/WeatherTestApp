@@ -11,7 +11,7 @@ import Foundation
 class NetworkManager {
     static let shared = NetworkManager()
     
-    let URL_SAMPLE = "https://api.openweathermap.org/data/2.5/onecall?lat=60.99&lon=30.9&appid=1fbda9403f5071896e3ede31f94dfa52"
+//    let URL_SAMPLE = "https://api.openweathermap.org/data/2.5/onecall?lat=60.99&lon=30.9&appid=1fbda9403f5071896e3ede31f94dfa52"
     let URL_API_KEY = "1fbda9403f5071896e3ede31f94dfa52"
     var URL_LATITUDE = "60.99"
     var URL_LONGITUDE = "30.9"
@@ -19,7 +19,7 @@ class NetworkManager {
     let URL_BASE = "https://api.openweathermap.org/data/2.5"
     var URL_CURRENT = "https://api.openweathermap.org/data/2.5/weather?lat="
     var URL_CURRENT_CALL = ""
-    let cur_sample = "https://api.openweathermap.org/data/2.5/weather?lat=60.99&lon=30.9&appid=1fbda9403f5071896e3ede31f94dfa52"
+//    let cur_sample = "https://api.openweathermap.org/data/2.5/weather?lat=60.99&lon=30.9&appid=1fbda9403f5071896e3ede31f94dfa52"
     
     let session = URLSession(configuration: .default)
     
